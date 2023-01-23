@@ -10,9 +10,12 @@ fn main() {
     let mut cpu = CPU::reset();
 
     mem.write_data(0xFFFC, 0xA9);
-    mem.write_data(0xFFFD, 4);
+    mem.write_data(0xFFFB, 4);
+    mem.write_data(0xFFFA, 0x85);
+    mem.write_data(0xFFF9, 0xFF);
+    mem.write_data(0xFFF8, 0xFC);
+
     //mem.out();
     println!();
-    cpu.execute(&mut mem, &mut 2);
-    //mem.out();
+    cpu.execute(&mut mem, &mut 10);
 }

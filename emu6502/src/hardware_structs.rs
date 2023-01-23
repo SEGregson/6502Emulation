@@ -30,7 +30,7 @@ impl Memory {
 
 pub struct CPU {
     // Registers
-    pub pc: u16,        // Program Counter
+    pc: u16,        // Program Counter
     sp: u16,            // Stack Pointer
     acc: u8,            // Accumulator
     x: u8,              // Index Register X
@@ -65,31 +65,88 @@ impl CPU {
             n: (false)
         }
     }
-    fn fetch_byte(&mut self, mem: &mut Memory, cycles: &mut u32) -> u8 {
-        self.pc += 1;
+    fn read_byte(&mut self, mem: &Memory, cycles: &mut u32) -> u8 {
         *cycles -= 1;
+        let temp = mem.read_data(self.pc);
+        println!("fetched byte {} with value {}", self.pc, temp);
+        self.pc -= 1;
+        return temp;
 
-        return mem.read_data(self.pc);
     }
+
+    fn write_byte(&mut self, mem: &mut Memory, cycles: &mut u32, data: u8, addr: u16) {
+        *cycles -= 1;
+        mem.write_data(addr, data);
+        self.pc -= 1;  
+    }
+
+
+
 
     pub fn execute(&mut self, mem: &mut Memory, cycles: &mut u32) {
         // opcodes
-        let LDA_IM: u8 = 0xA9;
+        // load
+        let LDA_IM: u8 = 0xA9;  // Load ACC immidiate
+        let LDX_IM: u8 = 0xA2;  // Load X immidiate
+        let LDY_IM: u8 = 0xA0;  // Load Y immidiate
+
+        // store
+        let STA_AB: u8 = 0x85;  // Store ACC absolute
+        let STX_AB: u8 = 0x8E;  // Store X absolute
+        let STY_AB: u8 = 0x8C;  // Store Y absolute
+
 
 
         while cycles > &mut 0 {
-            let ins = Self::fetch_byte(self, mem, cycles);
-            println!("fetched byte {} with value {}", self.pc-1, ins);
+            let ins = Self::read_byte(self, mem, cycles);
 
+            // Load/Store Operations
             if ins == LDA_IM {
-                println!("began load immidiate instruction");
-                let value = Self::fetch_byte(self, mem, cycles);
+                println!("began load ACC immidiate");
+                let value = Self::read_byte(self, mem, cycles);
                 // load value
                 self.acc = value;
+                println!("new acc value: {}", self.acc);
 
                 // set flags
                 self.z = (self.acc == 0);
                 self.n = (self.acc & 0b10000000) > 0;
+            } else if ins == LDX_IM {
+                println!("began load X immidiate");
+                let value = Self::read_byte(self, mem, cycles);
+                // load value
+                self.x = value;
+
+                // set flags
+                self.z = (self.acc == 0);
+                self.n = (self.acc & 0b10000000) > 0;
+
+
+            } else if ins == LDY_IM {
+                println!("began load Y immidiate");
+                let value = Self::read_byte(self, mem, cycles);
+                // load value
+                self.y = value;
+
+                // set flags
+                self.z = (self.acc == 0);
+                self.n = (self.acc & 0b10000000) > 0;
+
+            } else if ins == STA_AB {
+                println!("began store ACC absolute");
+                // write value
+                let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
+                addr = addr << 8;
+                addr += Self::read_byte(self, mem, cycles) as u16;
+                Self::write_byte(self, mem, cycles, self.acc, addr);
+
+            } else if ins == STX_AB {
+                println!("began store X absolute");
+
+
+            } else if ins == STY_AB {
+                println!("began store Y absolute");
+
             }
                     
             
