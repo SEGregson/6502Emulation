@@ -1,5 +1,6 @@
 pub const SIZE:usize = 1024*64;
 
+
 pub struct Memory {
     pub data: [u8; 1024*64]
 }
@@ -31,7 +32,7 @@ impl Memory {
 pub struct CPU {
     // Registers
     pc: u16,        // Program Counter
-    sp: u16,            // Stack Pointer
+    sp: u16,
     acc: u8,            // Accumulator
     x: u8,              // Index Register X
     y: u8,              // Index Register Y
@@ -95,6 +96,19 @@ impl CPU {
         let STX_AB: u8 = 0x8E;  // Store X absolute
         let STY_AB: u8 = 0x8C;  // Store Y absolute
 
+        // register transfers
+        let TAX: u8 = 0xAA;     // transfer acc to x
+        let TAY: u8 = 0xA8;     // transfer acc to y
+
+        let TSX: u8 = 0xBA;     // transfer sp reg to x
+
+        let TXA: u8 = 0x8A;     // transfer x to acc
+        let TXS: u8 = 0x9A;     // trasfer x to sp reg
+
+        let TYA: u8 = 0x98;     // transfer y to acc
+
+
+
 
 
         while cycles > &mut 0 {
@@ -142,10 +156,20 @@ impl CPU {
 
             } else if ins == STX_AB {
                 println!("began store X absolute");
+                // write value
+                let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
+                addr = addr << 8;
+                addr += Self::read_byte(self, mem, cycles) as u16;
+                Self::write_byte(self, mem, cycles, self.x, addr);
 
 
             } else if ins == STY_AB {
                 println!("began store Y absolute");
+                // write value
+                let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
+                addr = addr << 8;
+                addr += Self::read_byte(self, mem, cycles) as u16;
+                Self::write_byte(self, mem, cycles, self.y, addr);
 
             }
                     
