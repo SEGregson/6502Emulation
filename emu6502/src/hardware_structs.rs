@@ -66,6 +66,25 @@ impl CPU {
             n: (false)
         }
     }
+    fn read_sp(&mut self, mem: &mut Memory, cycles: &mut u32, pop: bool) -> u8 {
+        *cycles -= 1;
+        let temp = mem.read_data(self.sp);
+        if pop {
+            mem.write_data(self.sp, 0);
+            self.sp -= 1;
+        }  
+        return temp;
+    }
+
+    fn write_sp(&mut self, mem: &mut Memory, cycles: &mut u32, data: u8, push: bool) {
+        *cycles -= 1;
+        if push {
+            self.sp += 1;
+        }
+        mem.write_data(self.sp, data);
+        self.pc -= 1;  
+    }
+
     fn read_byte(&mut self, mem: &Memory, cycles: &mut u32) -> u8 {
         *cycles -= 1;
         let temp = mem.read_data(self.pc);
@@ -99,15 +118,24 @@ impl CPU {
         // register transfers
         let TAX: u8 = 0xAA;     // transfer acc to x
         let TAY: u8 = 0xA8;     // transfer acc to y
-
-        let TSX: u8 = 0xBA;     // transfer sp reg to x
-
         let TXA: u8 = 0x8A;     // transfer x to acc
-        let TXS: u8 = 0x9A;     // trasfer x to sp reg
-
         let TYA: u8 = 0x98;     // transfer y to acc
 
+        // Stack operations
+        let TSX: u8 = 0xBA;     // transfer sp to x
+        let TXS: u8 = 0x9A;     // transfer x to sp
+        let PHA: u8 = 0x48;     // push acc onto stack
+        let PHP: u8 = 0x08;     // push process status to stack
+        let PLA: u8 = 0x68;     // pull from stack to acc
+        let PLP: u8 = 0x28;     // pull process status from stack
 
+        // Logical operations
+        let AND_IM: u8 = 0x29;  // bitwise AND immidiate
+        let EOR_IM: u8 = 0x49;  // bitwise XOR immidiate (why does it have to be EOR not XOR?)
+        let ORA_IM: u8 = 0x09;  // bitwise OR immidiate
+        let BIT_AB: u8 = 0x2C;  // bit test absolute (needs research)
+
+        
 
 
 
@@ -132,8 +160,8 @@ impl CPU {
                 self.x = value;
 
                 // set flags
-                self.z = (self.acc == 0);
-                self.n = (self.acc & 0b10000000) > 0;
+                self.z = (self.x == 0);
+                self.n = (self.x & 0b10000000) > 0;
 
 
             } else if ins == LDY_IM {
@@ -143,8 +171,8 @@ impl CPU {
                 self.y = value;
 
                 // set flags
-                self.z = (self.acc == 0);
-                self.n = (self.acc & 0b10000000) > 0;
+                self.z = (self.y == 0);
+                self.n = (self.y & 0b10000000) > 0;
 
             } else if ins == STA_AB {
                 println!("began store ACC absolute");
@@ -171,8 +199,79 @@ impl CPU {
                 addr += Self::read_byte(self, mem, cycles) as u16;
                 Self::write_byte(self, mem, cycles, self.y, addr);
 
+            } else if ins == TAX {
+                println!("Began transfer acc to x");
+                // move value
+                self.x = self.acc;
+                // set flags
+                self.z = (self.acc == 0);
+                self.n = (self.acc & 0b10000000) > 0;
+            } else if ins == TAY {
+                println!("Began transfer acc to y");
+                // move value
+                self.y = self.acc;
+                // set flags
+                self.z = (self.y == 0);
+                self.n = (self.y & 0b10000000) > 0;
+            } else if ins == TXA {
+                println!("Began transfer x to acc");
+                // move value
+                self.acc = self.x;
+                // set flags
+                self.z = (self.acc == 0);
+                self.n = (self.acc & 0b10000000) > 0;
+
+            } else if ins == TYA {
+                println!("Began transfer acc to y");
+                // move value
+                self.x = self.y;
+                // set flags
+                self.z = (self.x == 0);
+                self.n = (self.x & 0b10000000) > 0;
+            } else if ins == TSX {
+                println!("Began transfer sp to x");
+                // move value
+                self.x = Self::read_sp(self, mem, cycles, false);
+                // set flags
+                self.z = (self.x == 0);
+                self.n = (self.x & 0b10000000) > 0;
+            } else if ins == TXS {
+                println!("Began transfer x to sp");
+                // move value
+                Self::write_sp(self, mem, cycles, self.x, false);
+                // set flags
+                self.z = (self.x == 0);
+                self.n = (self.x & 0b10000000) > 0;
+            } else if ins == PHA {
+                println!("began push acc to stack");
+                // push value
+                Self::write_sp(self, mem, cycles, self.acc, true);
+            } else if ins == PHP {
+                println!("began push process state to stack");
+                // research inner workings
+            } else if ins == PLA {
+                println!("began pop sp to acc");
+                // pop data
+                self.acc = Self::read_sp(self, mem, cycles, true);
+                // set flags
+                self.z = (self.acc == 0);
+                self.n = (self.acc & 0b10000000) > 0;
+            } else if ins == PLP {
+                println!("began pop status from stack");
+                // research inner workings
+            } else if ins == AND_IM {
+                println!("began immidiate AND");
+                let arg = Self::read_byte(self, mem, cycles);
+                self.acc = self.acc & arg;
+                
+                // set flags
+                self.z = (self.acc == 0);
+                self.n = (self.acc & 0b10000000) > 0;
+            } else if ins == EOR_IM {
+                println!("began immidiate EOR");
+                let arg == Self::read_byte(self, mem, cycles);
+                self.acc = self.acc ^ arg;
             }
-                    
             
         }
 
