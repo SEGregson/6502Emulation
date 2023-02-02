@@ -104,11 +104,6 @@ impl CPU {
 
 
     pub fn execute(&mut self, mem: &mut Memory, cycles: &mut u32) {
-        // opcodes
-        // load
-        let LDA_IM: u8 = 0xA9;  // Load ACC immidiate
-        let LDX_IM: u8 = 0xA2;  // Load X immidiate
-        let LDY_IM: u8 = 0xA0;  // Load Y immidiate
 
         // store
         let STA_AB: u8 = 0x85;  // Store ACC absolute
@@ -140,143 +135,225 @@ impl CPU {
 
 
         while cycles > &mut 0 {
-            let ins = Self::read_byte(self, mem, cycles);
+            let ins:u8 = Self::read_byte(self, mem, cycles);
 
-            // Load/Store Operations
-            if ins == LDA_IM {
-                println!("began load ACC immidiate");
-                let value = Self::read_byte(self, mem, cycles);
-                // load value
-                self.acc = value;
-                println!("new acc value: {}", self.acc);
+            match ins {
+                // Load/Store Operations
+                0xA9 => {   // load acc immidiate
+                    println!("began load ACC immidiate");
+                    let value = Self::read_byte(self, mem, cycles);
+                    // load value
+                    self.acc = value;
+                    println!("new acc value: {}", self.acc);
 
-                // set flags
-                self.z = (self.acc == 0);
-                self.n = (self.acc & 0b10000000) > 0;
-            } else if ins == LDX_IM {
-                println!("began load X immidiate");
-                let value = Self::read_byte(self, mem, cycles);
-                // load value
-                self.x = value;
+                    // set flags
+                    self.z = (self.acc == 0);
+                    self.n = (self.acc & 0b10000000) > 0;
+                },
+                0xA2 => {   // load x immidiate
+                    println!("began load X immidiate");
+                    let value = Self::read_byte(self, mem, cycles);
+                    // load value
+                    self.x = value;
 
-                // set flags
-                self.z = (self.x == 0);
-                self.n = (self.x & 0b10000000) > 0;
+                    // set flags
+                    self.z = (self.x == 0);
+                    self.n = (self.x & 0b10000000) > 0;
+                },
+                0xA0 => {   // load y immidiate
+                    println!("began load Y immidiate");
+                    let value = Self::read_byte(self, mem, cycles);
+                    // load value
+                    self.y = value;
+
+                    // set flags
+                    self.z = (self.y == 0);
+                    self.n = (self.y & 0b10000000) > 0;
+
+                },
+                0x85 => {   // store acc absolute
+                    println!("began store ACC absolute");
+                    // write value
+                    let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
+                    addr = addr << 8;
+                    addr += Self::read_byte(self, mem, cycles) as u16;
+                    Self::write_byte(self, mem, cycles, self.acc, addr);
+
+                },
+                0x8E => {   // store x absolute
+                    println!("began store X absolute");
+                    // write value
+                    let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
+                    addr = addr << 8;
+                    addr += Self::read_byte(self, mem, cycles) as u16;
+                    Self::write_byte(self, mem, cycles, self.x, addr);
 
 
-            } else if ins == LDY_IM {
-                println!("began load Y immidiate");
-                let value = Self::read_byte(self, mem, cycles);
-                // load value
-                self.y = value;
+                },
+                0x8C => {   // store y absolute
+                    println!("began store Y absolute");
+                    // write value
+                    let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
+                    addr = addr << 8;
+                    addr += Self::read_byte(self, mem, cycles) as u16;
+                    Self::write_byte(self, mem, cycles, self.y, addr);
 
-                // set flags
-                self.z = (self.y == 0);
-                self.n = (self.y & 0b10000000) > 0;
+                },
+                // transfers
+                0xAA => {   // transfer acc to x
+                    println!("Began transfer acc to x");
+                    // move value
+                    self.x = self.acc;
+                    // set flags
+                    self.z = (self.acc == 0);
+                    self.n = (self.acc & 0b10000000) > 0;
+                },
+                0xA8 => {   // transfer acc to y
+                    println!("Began transfer acc to y");
+                    // move value
+                    self.y = self.acc;
+                    // set flags
+                    self.z = (self.y == 0);
+                    self.n = (self.y & 0b10000000) > 0;
+                },
+                0x8A => {   // transfer x to acc
+                    println!("Began transfer x to acc");
+                    // move value
+                    self.acc = self.x;
+                    // set flags
+                    self.z = (self.acc == 0);
+                    self.n = (self.acc & 0b10000000) > 0;
 
-            } else if ins == STA_AB {
-                println!("began store ACC absolute");
-                // write value
-                let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
-                addr = addr << 8;
-                addr += Self::read_byte(self, mem, cycles) as u16;
-                Self::write_byte(self, mem, cycles, self.acc, addr);
+                },
+                0x98 => {   // transfer y to acc
+                    println!("Began transfer y to acc");
+                    // move value
+                    self.x = self.y;
+                    // set flags
+                    self.z = (self.x == 0);
+                    self.n = (self.x & 0b10000000) > 0;
+                },
+                // stack operations
+                0xBA => {   // transfer sp to x
+                    println!("Began transfer sp to x");
+                    // move value
+                    self.x = Self::read_sp(self, mem, cycles, false);
+                    // set flags
+                    self.z = (self.x == 0);
+                    self.n = (self.x & 0b10000000) > 0;
+                },
+                0x9A => {   // transfer x to sp
+                    println!("Began transfer x to sp");
+                    // move value
+                    Self::write_sp(self, mem, cycles, self.x, false);
+                    // set flags
+                    self.z = (self.x == 0);
+                    self.n = (self.x & 0b10000000) > 0;
+                },
+                0x48 => {   // push acc to stack
+                    println!("began push acc to stack");
+                    // push value
+                    Self::write_sp(self, mem, cycles, self.acc, true);
+                },
+                0x08 => {   // process state to stack 
+                    println!("began push process state to stack");
+                    // research inner workings
+                },
+                0x68 => {   // pop stack to acc
+                    println!("began pop sp to acc");
+                    // pop data
+                    self.acc = Self::read_sp(self, mem, cycles, true);
+                    // set flags
+                    self.z = (self.acc == 0);
+                    self.n = (self.acc & 0b10000000) > 0;
+                },
+                0x28 => {   // pop process status from stack
+                    println!("began pop status from stack");
+                    // research inner workings
+                },
+                // logical expressions
+                0x29 => {   // bitwise AND immidiate
+                    println!("began immidiate AND");
+                    let arg = Self::read_byte(self, mem, cycles);
+                    self.acc = self.acc & arg;
+                    
+                    // set flags
+                    self.z = (self.acc == 0);
+                    self.n = (self.acc & 0b10000000) > 0;
+                },
+                0x49 => {   // bitwise EOR immidiate (why isn't it XOR?)
+                    println!("began immidiate EOR");
+                    let arg = Self::read_byte(self, mem, cycles);
+                    self.acc = self.acc ^ arg;
 
-            } else if ins == STX_AB {
-                println!("began store X absolute");
-                // write value
-                let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
-                addr = addr << 8;
-                addr += Self::read_byte(self, mem, cycles) as u16;
-                Self::write_byte(self, mem, cycles, self.x, addr);
+                    // set flags
+                    self.z = (self.acc == 0);
+                    self.n = (self.acc & 0b10000000) > 0;
+                },
+                0x09 => {   // bitwise OR immidiate
+                    println!("began immidiate OR");
+                    let arg = Self::read_byte(self, mem, cycles);
+                    self.acc = self.acc | arg;
 
+                    // set flags
+                    self.z = (self.acc == 0);
+                    self.n = (self.acc & 0b10000000) > 0;
+                },
+                0x2C => {   // bit test (research)
+                    println!("began bit test");
+                },
+                // arithmetic
+                0x69 => { // immidiate add with carry
+                    let arg = Self::read_byte(self, mem, cycles);
+                    self.acc += arg; 
 
-            } else if ins == STY_AB {
-                println!("began store Y absolute");
-                // write value
-                let mut addr: u16 = Self::read_byte(self, mem, cycles) as u16;
-                addr = addr << 8;
-                addr += Self::read_byte(self, mem, cycles) as u16;
-                Self::write_byte(self, mem, cycles, self.y, addr);
+                    // set flags
+                    self.c = (self.acc > 0b1111111);
+                    self.z = (self.acc == 0);
+                    self.v = (self.acc > 0b11111111);
+                    self.n = (self.acc > 0b1000000);
+                },
+                0xE9 => {   // immidiate subtract with carry
+                    let arg = Self::read_byte(self, mem, cycles);
+                    self.acc -= arg;
 
-            } else if ins == TAX {
-                println!("Began transfer acc to x");
-                // move value
-                self.x = self.acc;
-                // set flags
-                self.z = (self.acc == 0);
-                self.n = (self.acc & 0b10000000) > 0;
-            } else if ins == TAY {
-                println!("Began transfer acc to y");
-                // move value
-                self.y = self.acc;
-                // set flags
-                self.z = (self.y == 0);
-                self.n = (self.y & 0b10000000) > 0;
-            } else if ins == TXA {
-                println!("Began transfer x to acc");
-                // move value
-                self.acc = self.x;
-                // set flags
-                self.z = (self.acc == 0);
-                self.n = (self.acc & 0b10000000) > 0;
+                    // set flags
+                    self.c = (self.acc > 0b1111111);
+                    self.z = (self.acc == 0);
+                    self.v = (self.acc > 0b11111111);
+                    self.n = (self.acc > 0b1000000);
+                },
+                0xC9 => {   // immidiate compare acc
+                    let arg = Self::read_byte(self, mem, cycles);
+                    
+                    // comapre
+                    self.c = (self.acc >= arg);
+                    self.z = (self.acc == arg);
+                    self.n = (self.acc > 0b1000000);
+                },
+                0xE0 => {   // immidiate compare x
+                    let arg = Self::read_byte(self, mem, cycles);
 
-            } else if ins == TYA {
-                println!("Began transfer acc to y");
-                // move value
-                self.x = self.y;
-                // set flags
-                self.z = (self.x == 0);
-                self.n = (self.x & 0b10000000) > 0;
-            } else if ins == TSX {
-                println!("Began transfer sp to x");
-                // move value
-                self.x = Self::read_sp(self, mem, cycles, false);
-                // set flags
-                self.z = (self.x == 0);
-                self.n = (self.x & 0b10000000) > 0;
-            } else if ins == TXS {
-                println!("Began transfer x to sp");
-                // move value
-                Self::write_sp(self, mem, cycles, self.x, false);
-                // set flags
-                self.z = (self.x == 0);
-                self.n = (self.x & 0b10000000) > 0;
-            } else if ins == PHA {
-                println!("began push acc to stack");
-                // push value
-                Self::write_sp(self, mem, cycles, self.acc, true);
-            } else if ins == PHP {
-                println!("began push process state to stack");
-                // research inner workings
-            } else if ins == PLA {
-                println!("began pop sp to acc");
-                // pop data
-                self.acc = Self::read_sp(self, mem, cycles, true);
-                // set flags
-                self.z = (self.acc == 0);
-                self.n = (self.acc & 0b10000000) > 0;
-            } else if ins == PLP {
-                println!("began pop status from stack");
-                // research inner workings
-            } else if ins == AND_IM {
-                println!("began immidiate AND");
-                let arg = Self::read_byte(self, mem, cycles);
-                self.acc = self.acc & arg;
-                
-                // set flags
-                self.z = (self.acc == 0);
-                self.n = (self.acc & 0b10000000) > 0;
-            } else if ins == EOR_IM {
-                println!("began immidiate EOR");
-                let arg == Self::read_byte(self, mem, cycles);
-                self.acc = self.acc ^ arg;
-            }
+                    // compare
+                    self.c = (self.x >= arg);
+                    self.z = (self.x == arg);
+                    self.n = (self.x > 0b1000000);
+                },
+                0xC0 => {   // immidiate compare y
+                    let arg = Self::read_byte(self, mem, cycles);
+
+                    // compare
+                    self.c = (self.y >= arg);
+                    self.z = (self.y == arg);
+                    self.n = (self.y > 0b1000000);
+                },
+                // increment + decrement
+                _=> {
+                    println!("{} is not a recognised opcode", ins);
+                }
             
+            }
         }
-
-
     }
-
     
 }
